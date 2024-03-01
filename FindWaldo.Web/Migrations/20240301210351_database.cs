@@ -33,7 +33,9 @@ namespace FindWaldo.Web.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Username = table.Column<string>(type: "text", nullable: false),
-                    Score = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
+                    Score = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    X = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0),
+                    Y = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0)
                 },
                 constraints: table =>
                 {

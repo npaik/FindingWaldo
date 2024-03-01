@@ -61,6 +61,16 @@ namespace FindWaldo.Web.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<double>("X")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<double>("Y")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Username")

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FindWaldo.Web.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20240301034642_database")]
+    [Migration("20240301210351_database")]
     partial class database
     {
         /// <inheritdoc />
@@ -63,6 +63,16 @@ namespace FindWaldo.Web.Migrations
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<double>("X")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<double>("Y")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.HasKey("Id");
 

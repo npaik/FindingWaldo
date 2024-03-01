@@ -18,36 +18,38 @@ function RootLayout() {
 
     if (storedUsername) {
       setUsername(storedUsername);
-      setScore(parseInt(storedScore, 10) || 0); // Ensure score is an integer
+      setScore(parseInt(storedScore || "0", 10));
     } else {
       setIsLoggingIn(true);
     }
   }, []);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const inputUsername = e.target.username.value;
+    const form = e.target as HTMLFormElement;
+    const inputUsername = (
+      form.elements.namedItem("username") as HTMLInputElement
+    ).value;
 
     if (inputUsername) {
       try {
-        // Try to get user by username
         const response = await axios.get(
           `/api/Users/byUsername/${encodeURIComponent(inputUsername)}`
         );
-        // If the user exists, update state and localStorage
         setUsername(response.data.username);
         setScore(response.data.score);
         localStorage.setItem("username", response.data.username);
         localStorage.setItem("score", response.data.score.toString());
         setIsLoggingIn(false);
       } catch (error) {
+        // @ts-ignore
         if (error.response && error.response.status === 404) {
-          // If the user does not exist, create a new user
           try {
             const createUserResponse = await axios.post("/api/Users", {
               username: inputUsername,
             });
             setUsername(createUserResponse.data.username);
+
             setScore(createUserResponse.data.score);
             localStorage.setItem("username", createUserResponse.data.username);
             localStorage.setItem(
@@ -85,6 +87,15 @@ function RootLayout() {
     );
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem("username");
+    localStorage.removeItem("score");
+
+    setUsername("");
+    setScore(0);
+    setIsLoggingIn(true);
+  };
+
   return (
     <>
       <div className="py-2 flex mx-auto justify-between items-center w-full pb-4 px-4 lg:px-10">
@@ -92,9 +103,14 @@ function RootLayout() {
           Home
         </Link>
         {username && (
-          <div className="text-2xl text-bold text-center">
-            Welcome {username}
-          </div>
+          <>
+            <div className="text-2xl text-bold text-center">
+              Welcome {username}
+            </div>
+            <button onClick={handleLogout} className="btn logout-button">
+              Logout
+            </button>
+          </>
         )}
         <div className="flex gap-x-4">
           <Link

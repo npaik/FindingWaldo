@@ -22,6 +22,13 @@ public class DatabaseContext : DbContext
         modelBuilder.Entity<User>()
         .Property(u => u.Score)
         .HasDefaultValue(0);
-    }
 
-}
+        modelBuilder.Entity<User>()
+        .Property(u => u.X)
+        .HasDefaultValue(0);
+
+        modelBuilder.Entity<User>()
+        .Property(u => u.Y)
+        .HasDefaultValue(0);
+    }
+    }

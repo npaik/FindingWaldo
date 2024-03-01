@@ -7,6 +7,8 @@ type User = {
   id: number;
   username: string;
   score: number;
+  x: number;
+  y: number;
 };
 
 type Position = {
@@ -78,6 +80,26 @@ const WaldoGame = () => {
     }
   };
 
+  const updatePositionInDatabase = async (
+    username: string,
+    x: number,
+    y: number
+  ) => {
+    try {
+      await axios.put(`/api/Users/${username}`, {
+        username,
+        x,
+        y,
+      });
+      console.log("Position updated successfully.");
+
+      const { data } = await axios.get("/api/Users");
+      setAllUsers(data);
+    } catch (error) {
+      console.error("Failed to update position", error);
+    }
+  };
+
   const waldoPositions = [
     { x: 27.638, y: 35.066 },
     { x: 88.221, y: 66.178 },
@@ -107,7 +129,10 @@ const WaldoGame = () => {
           setCorrectPositions([...correctPositions, { x, y }]);
           const updatedScore = score + 10;
           setScore(updatedScore);
+
           updateScoreInDatabase(currentUser.username, updatedScore);
+
+          updatePositionInDatabase(currentUser.username, x, y);
         }
         found = true;
       }
@@ -115,8 +140,9 @@ const WaldoGame = () => {
 
     if (!found) {
       setLatestIncorrectPosition({ x, y });
-    } else {
-      setLatestIncorrectPosition(null);
+      if (currentUser) {
+        updatePositionInDatabase(currentUser.username, x, y); // Update for incorrect guess
+      }
     }
   };
 
@@ -125,7 +151,7 @@ const WaldoGame = () => {
     clickY: number,
     waldoPos: number[]
   ) => {
-    const tolerance = 1;
+    const tolerance = 1.5;
     return (
       Math.abs(clickX - waldoPos.x) <= tolerance &&
       Math.abs(clickY - waldoPos.y) <= tolerance
@@ -156,6 +182,7 @@ const WaldoGame = () => {
             className="absolute w-10 h-10 border-4 border-red-500 rounded-full"
             style={{
               left: `calc(${latestIncorrectPosition.x}% - 9px)`,
+
               top: `calc(${latestIncorrectPosition.y}% - 9px)`,
             }}
           />
@@ -170,17 +197,21 @@ const WaldoGame = () => {
         />
         <div>
           <h2 className="text-lg font-bold mt-10 mb-2">Player Scores</h2>
-          <div className="mt-4">
+          <div className="">
             <h3 className="text-xl">
-              {currentUser.username} - Score: {currentUser.score}
+              {currentUser.username} - Score: {score}
             </h3>
-            <h4 className="text-lg font-bold mt-10">Other Players:</h4>
+            <h4 className="text-lg font-bold mt-10 mb-2">Other Players:</h4>
             <ul>
-              {allUsers.map((user, index) => (
-                <li key={index}>
-                  {user.username} - Score: {user.score}
-                </li>
-              ))}
+              {allUsers
+                .filter((user) =>
+                  currentUser ? user.username !== currentUser.username : true
+                )
+                .map((user, index) => (
+                  <li key={index}>
+                    {user.username} - Score: {user.score}
+                  </li>
+                ))}
             </ul>
           </div>
         </div>

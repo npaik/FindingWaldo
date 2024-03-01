@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for findwaldo-web on 2024-02-25T15:50:20-08:00
+# fly.toml app configuration file generated for findwaldo-web-holy-fog-8052 on 2024-03-01T14:15:05-08:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'findwaldo-web'
+app = 'findwaldo-web-holy-fog-8052'
 primary_region = 'sea'
 
 [build]

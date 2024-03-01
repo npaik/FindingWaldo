@@ -53,6 +53,8 @@ namespace FindWaldo.Web.Controllers
             }
 
             user.Score = NewUser.Score;
+            user.X = NewUser.X;
+            user.Y = NewUser.Y;
 
             try
             {
