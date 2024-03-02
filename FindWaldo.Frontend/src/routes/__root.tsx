@@ -111,7 +111,7 @@ function RootLayout() {
         {username && (
           <>
             <div className="text-2xl text-bold text-center">
-              Welcome {username}
+              Welcome {username} - Score: {score}
             </div>
             <button onClick={handleLogout} className="btn logout-button">
               Logout

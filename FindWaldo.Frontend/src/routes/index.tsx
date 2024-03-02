@@ -27,8 +27,45 @@ const WaldoGame = () => {
   const [otherUserPositions, setOtherUserPositions] = useState<{
     [username: string]: Position;
   }>({});
+  const [currentMapIndex, setCurrentMapIndex] = useState(0);
+  const [timer, setTimer] = useState(30);
+
+  const maps = [
+    {
+      filename: "waldo-1.jpg",
+      coordinates: [
+        { x: 27.638, y: 35.066 },
+        { x: 88.221, y: 66.178 },
+        { x: 95.521, y: 80.018 },
+        { x: 9.513, y: 65.782 },
+      ],
+    },
+    {
+      filename: "waldo-2.jpg",
+      coordinates: [{ x: 26.473682395143488, y: 30.65557134158717 }],
+    },
+  ];
 
   const { connection } = useSignalR("/r/gameHub");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMapIndex((prevIndex) => (prevIndex + 1) % maps.length);
+      setTimer(30);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const countdown = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+
+      return () => clearInterval(countdown);
+    }
+  }, [timer]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -40,7 +77,7 @@ const WaldoGame = () => {
         const currentUserData = data.find(
           (user: User) => user.username === currentUserUsername
         );
-        setCurrentUser(currentUserData || null); // Correctly set a single User object or null
+        setCurrentUser(currentUserData || null);
       } catch (error) {
         console.error("Failed to fetch users", error);
       }
@@ -130,13 +167,6 @@ const WaldoGame = () => {
     }
   };
 
-  const waldoPositions = [
-    { x: 27.638, y: 35.066 },
-    { x: 88.221, y: 66.178 },
-    { x: 95.521, y: 80.018 },
-    { x: 9.513, y: 65.782 },
-  ];
-
   const handleImageClick = (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>
   ) => {
@@ -151,7 +181,8 @@ const WaldoGame = () => {
       (circleDiameter / 2 / bounds.height) * 100;
 
     let found = false;
-    waldoPositions.forEach((waldoPos) => {
+    const currentCoordinates = maps[currentMapIndex].coordinates;
+    currentCoordinates.forEach((waldoPos) => {
       if (!found && isCloseEnough(x, y, waldoPos)) {
         if (
           !correctPositions.some((pos) => isCloseEnough(pos.x, pos.y, waldoPos))
@@ -160,18 +191,18 @@ const WaldoGame = () => {
           const updatedScore = score + 10;
           setScore(updatedScore);
 
-          updateScoreInDatabase(currentUser.username, updatedScore);
+          updateScoreInDatabase(currentUser?.username || "", updatedScore);
 
-          updatePositionInDatabase(currentUser.username, x, y);
+          updatePositionInDatabase(currentUser?.username || "", x, y);
         }
         found = true;
       }
     });
 
     if (!found) {
-      setLatestIncorrectPosition({ x, y });
+      setLatestIncorrectPosition([{ x, y }]);
       if (currentUser) {
-        updatePositionInDatabase(currentUser.username, x, y); // Update for incorrect guess
+        updatePositionInDatabase(currentUser.username, x, y);
       }
     }
   };
@@ -179,7 +210,7 @@ const WaldoGame = () => {
   const isCloseEnough = (
     clickX: number,
     clickY: number,
-    waldoPos: number[]
+    waldoPos: Position
   ) => {
     const tolerance = 1.5;
     return (
@@ -192,8 +223,8 @@ const WaldoGame = () => {
     <div className="flex justify-center w-full">
       <div className="relative w-3/4">
         <img
-          src="waldo-1.jpg"
-          alt="Where's Waldo"
+          src={maps[currentMapIndex].filename}
+          alt={`Where's Waldo Map ${currentMapIndex + 1}`}
           className="w-full h-auto border-4 border-black"
           onClick={handleImageClick}
         />
@@ -207,18 +238,18 @@ const WaldoGame = () => {
             }}
           />
         ))}
-        {latestIncorrectPosition && (
+        {latestIncorrectPosition.length > 0 && (
           <div
             className="absolute w-10 h-10 border-4 border-red-500 rounded-full"
             style={{
-              left: `calc(${latestIncorrectPosition.x}% - 9px)`,
-
-              top: `calc(${latestIncorrectPosition.y}% - 9px)`,
+              left: `calc(${latestIncorrectPosition[latestIncorrectPosition.length - 1].x}% - 9px)`,
+              top: `calc(${latestIncorrectPosition[latestIncorrectPosition.length - 1].y}% - 9px)`,
             }}
           />
         )}
+
         {Object.entries(otherUserPositions)
-          .filter(([username, _]) => currentUser?.username !== username)
+          .filter(([username]) => currentUser?.username !== username)
           .map(([username, position]) => (
             <div
               key={username}
@@ -239,7 +270,7 @@ const WaldoGame = () => {
             -1px -1px 0 #000,  
              1px -1px 0 #000,
             -1px  1px 0 #000,
-             1px  1px 0 #000`, // Simulated black border effect
+             1px  1px 0 #000`,
                 }}
               >
                 {username}
@@ -248,6 +279,11 @@ const WaldoGame = () => {
           ))}
       </div>
       <div className="m-4">
+        <div className="mb-10 text-center">
+          <span className="text-xl font-semibold">
+            Next map in: {timer} seconds
+          </span>
+        </div>
         <h2 className="text-lg font-bold mb-2">Find Waldo and His Friends</h2>
         <img
           src="findlist.jpg"
@@ -255,12 +291,8 @@ const WaldoGame = () => {
           className="w-44 pt-4 ml-6 h-auto"
         />
         <div>
-          <h2 className="text-lg font-bold mt-10 mb-2">Player Scores</h2>
           <div className="">
-            <h3 className="text-xl">
-              {currentUser?.username} - Score: {score}
-            </h3>
-            <h4 className="text-lg font-bold mt-10 mb-2">Other Players:</h4>
+            <h4 className="text-lg font-bold mt-10 mb-2">Players</h4>
             <ul>
               {allUsers
                 .filter((user) =>
