@@ -31,56 +31,62 @@ function RootLayout() {
       form.elements.namedItem("username") as HTMLInputElement
     ).value;
 
-    if (inputUsername) {
-      try {
-        const response = await axios.get(
-          `/api/Users/byUsername/${encodeURIComponent(inputUsername)}`
-        );
-        setUsername(response.data.username);
-        setScore(response.data.score);
-        localStorage.setItem("username", response.data.username);
-        localStorage.setItem("score", response.data.score.toString());
-        setIsLoggingIn(false);
-      } catch (error) {
-        // @ts-ignore
-        if (error.response && error.response.status === 404) {
-          try {
-            const createUserResponse = await axios.post("/api/Users", {
-              username: inputUsername,
-            });
-            setUsername(createUserResponse.data.username);
+    if (!inputUsername) return;
 
-            setScore(createUserResponse.data.score);
-            localStorage.setItem("username", createUserResponse.data.username);
-            localStorage.setItem(
-              "score",
-              createUserResponse.data.score.toString()
-            );
-            setIsLoggingIn(false);
-          } catch (creationError) {
-            console.error("Error creating user:", creationError);
-            alert("There was an issue creating the user. Please try again.");
-          }
-        } else {
-          console.error("Error fetching or creating user:", error);
+    try {
+      const response = await axios.get(
+        `/api/Users/byUsername/${encodeURIComponent(inputUsername)}`
+      );
+      setUsername(response.data.username);
+      setScore(response.data.score);
+      localStorage.setItem("username", response.data.username);
+      localStorage.setItem("score", response.data.score.toString());
+      setIsLoggingIn(false);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        try {
+          const createUserResponse = await axios.post("/api/Users", {
+            username: inputUsername,
+          });
+          setUsername(createUserResponse.data.username);
+          setScore(createUserResponse.data.score);
+          localStorage.setItem("username", createUserResponse.data.username);
+          localStorage.setItem(
+            "score",
+            createUserResponse.data.score.toString()
+          );
+          setIsLoggingIn(false);
+        } catch (creationError) {
+          console.error("Error creating user:", creationError);
         }
+      } else {
+        console.error("Error fetching user:", error);
       }
     }
   };
 
   if (isLoggingIn) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <form onSubmit={handleLogin} className="flex flex-col gap-2">
+      <div className="flex justify-center items-center h-screen bg-gray-100">
+        <form
+          onSubmit={handleLogin}
+          className="flex flex-col gap-6 bg-white p-10 rounded-lg shadow-lg"
+        >
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
+            Welcome!
+          </h2>
           <input
             type="text"
             name="username"
             placeholder="Enter your username"
-            className="input"
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
-          <button type="submit" className="btn">
-            Log In
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            Sign Up / Log In
           </button>
         </form>
       </div>
