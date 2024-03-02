@@ -17,9 +17,15 @@ public class GameHub : Hub
         Console.WriteLine("A client disconnected: " + Context.ConnectionId);
         return base.OnDisconnectedAsync(exception);
     }
-    public async Task SendClickPosition(double x, double y, bool isCorrect, string username)
+    public async Task UpdateUserPosition(string username, double x, double y)
     {
-        await Clients.All.SendAsync("ReceiveClickPosition", x, y, isCorrect, username);
+        await Clients.Others.SendAsync("ReceivePositionUpdate", username, x, y);
     }
+
+    public async Task UpdateUserScore(string username, int newScore)
+    {
+    await Clients.All.SendAsync("ReceiveScoreUpdate", username, newScore);
+    }
+
 
 }

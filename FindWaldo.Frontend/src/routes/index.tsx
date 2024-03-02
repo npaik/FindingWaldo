@@ -22,22 +22,25 @@ const WaldoGame = () => {
     Position[]
   >([]);
   const [score, setScore] = useState<number>(0);
-  const [currentUser, setCurrentUser] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [otherUserPositions, setOtherUserPositions] = useState<{
+    [username: string]: Position;
+  }>({});
 
   const { connection } = useSignalR("/r/gameHub");
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { data } = await axios.get("/api/Users");
+        const { data } = await axios.get<User[]>("/api/Users");
         setAllUsers(data);
 
         const currentUserUsername = localStorage.getItem("username");
         const currentUserData = data.find(
           (user: User) => user.username === currentUserUsername
         );
-        setCurrentUser(currentUserData || null);
+        setCurrentUser(currentUserData || null); // Correctly set a single User object or null
       } catch (error) {
         console.error("Failed to fetch users", error);
       }
@@ -45,6 +48,33 @@ const WaldoGame = () => {
 
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const fetchAndUpdateUserPositions = async () => {
+      const updatedPositions: { [username: string]: Position } = {};
+
+      const usernames = allUsers.map((user) => user.username);
+      for (const username of usernames) {
+        try {
+          const { data } = await axios.get<User>(
+            `/api/Users/byUsername/${username}`
+          );
+
+          if (data.x !== undefined && data.y !== undefined) {
+            updatedPositions[username] = { x: data.x, y: data.y };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch position for ${username}`, error);
+        }
+      }
+
+      setOtherUserPositions(updatedPositions);
+    };
+
+    if (allUsers.length > 0) {
+      fetchAndUpdateUserPositions();
+    }
+  }, [allUsers]);
 
   useEffect(() => {
     if (connection) {
@@ -67,14 +97,12 @@ const WaldoGame = () => {
 
   const updateScoreInDatabase = async (username: string, newScore: number) => {
     try {
-      await axios.put(`/api/Users/${username}`, {
-        username: username,
-        score: newScore,
-      });
+      await axios.put(`/api/Users/${username}`, { username, score: newScore });
       console.log("Score updated successfully.");
 
-      const { data } = await axios.get("/api/Users");
-      setAllUsers(data);
+      if (connection && connection.state === "Connected") {
+        await connection.invoke("BroadcastScoreUpdate", username, newScore);
+      }
     } catch (error) {
       console.error("Failed to update score", error);
     }
@@ -86,10 +114,12 @@ const WaldoGame = () => {
     y: number
   ) => {
     try {
+      const currentScore = currentUser?.score || 0;
       await axios.put(`/api/Users/${username}`, {
         username,
         x,
         y,
+        score: currentScore,
       });
       console.log("Position updated successfully.");
 
@@ -187,6 +217,35 @@ const WaldoGame = () => {
             }}
           />
         )}
+        {Object.entries(otherUserPositions)
+          .filter(([username, _]) => currentUser?.username !== username)
+          .map(([username, position]) => (
+            <div
+              key={username}
+              className="absolute"
+              style={{
+                left: `calc(${position.x}% - 9px)`,
+                top: `calc(${position.y}% - 9px)`,
+              }}
+            >
+              <div className="w-10 h-10 border-4 border-blue-800 rounded-full"></div>
+              <div
+                className="absolute text-white font-bold"
+                style={{
+                  left: "12px",
+                  top: "0px",
+                  whiteSpace: "nowrap",
+                  textShadow: `
+            -1px -1px 0 #000,  
+             1px -1px 0 #000,
+            -1px  1px 0 #000,
+             1px  1px 0 #000`, // Simulated black border effect
+                }}
+              >
+                {username}
+              </div>
+            </div>
+          ))}
       </div>
       <div className="m-4">
         <h2 className="text-lg font-bold mb-2">Find Waldo and His Friends</h2>
@@ -199,7 +258,7 @@ const WaldoGame = () => {
           <h2 className="text-lg font-bold mt-10 mb-2">Player Scores</h2>
           <div className="">
             <h3 className="text-xl">
-              {currentUser.username} - Score: {score}
+              {currentUser?.username} - Score: {score}
             </h3>
             <h4 className="text-lg font-bold mt-10 mb-2">Other Players:</h4>
             <ul>
